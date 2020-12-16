@@ -1,0 +1,173 @@
+{
+ "metadata": {
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.7.1-final"
+  },
+  "orig_nbformat": 2,
+  "kernelspec": {
+   "name": "python3",
+   "display_name": "Python 3"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 2,
+ "cells": [
+  {
+   "cell_type": "code",
+   "execution_count": 2,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import numpy as np\n",
+    "\n",
+    "from lightfm.datasets import fetch_movielens\n",
+    "\n",
+    "data = fetch_movielens(min_rating=5.0)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 3,
+   "metadata": {},
+   "outputs": [
+    {
+     "output_type": "stream",
+     "name": "stdout",
+     "text": [
+      "<943x1682 sparse matrix of type '<class 'numpy.int32'>'\n\twith 19048 stored elements in COOrdinate format>\n<943x1682 sparse matrix of type '<class 'numpy.int32'>'\n\twith 2153 stored elements in COOrdinate format>\n"
+     ]
+    }
+   ],
+   "source": [
+    "print(repr(data['train']))\n",
+    "print(repr(data['test']))"
+   ]
+  },
+  {
+   "source": [
+    "OI"
+   ],
+   "cell_type": "markdown",
+   "metadata": {}
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 6,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from lightfm import LightFM\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 7,
+   "metadata": {},
+   "outputs": [
+    {
+     "output_type": "stream",
+     "name": "stdout",
+     "text": [
+      "CPU times: user 825 ms, sys: 22.8 ms, total: 847 ms\nWall time: 939 ms\n"
+     ]
+    },
+    {
+     "output_type": "execute_result",
+     "data": {
+      "text/plain": [
+       "<lightfm.lightfm.LightFM at 0x122aea978>"
+      ]
+     },
+     "metadata": {},
+     "execution_count": 7
+    }
+   ],
+   "source": [
+    "model = LightFM(loss='warp')\n",
+    "%time model.fit(data['train'], epochs=30, num_threads=2)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 8,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "from lightfm.evaluation import precision_at_k"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 9,
+   "metadata": {},
+   "outputs": [
+    {
+     "output_type": "stream",
+     "name": "stdout",
+     "text": [
+      "Precisão no treino: 0.40\nPrecisão no teste: 0.05\n"
+     ]
+    }
+   ],
+   "source": [
+    "print('Precisão no treino: %.2f' % precision_at_k(model, data['train'], k=5).mean())\n",
+    "print('Precisão no teste: %.2f' % precision_at_k(model, data['test'], k=5).mean())"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 10,
+   "metadata": {},
+   "outputs": [
+    {
+     "output_type": "stream",
+     "name": "stdout",
+     "text": [
+      "User 3\n     Known positives:\n        Contact (1997)\n        Air Force One (1997)\n        In & Out (1997)\n     Recommended:\n        Kiss the Girls (1997)\n        G.I. Jane (1997)\n        Cop Land (1997)\nUser 25\n     Known positives:\n        Fargo (1996)\n        Godfather, The (1972)\n        L.A. Confidential (1997)\n     Recommended:\n        Star Wars (1977)\n        Titanic (1997)\n        Fargo (1996)\nUser 450\n     Known positives:\n        Event Horizon (1997)\n        Scream (1996)\n        Conspiracy Theory (1997)\n     Recommended:\n        Game, The (1997)\n        Saint, The (1997)\n        Devil's Own, The (1997)\n"
+     ]
+    }
+   ],
+   "source": [
+    "def sample_recommendation(model, data, user_ids):\n",
+    "\n",
+    "\n",
+    "    n_users, n_items = data['train'].shape\n",
+    "\n",
+    "    for user_id in user_ids:\n",
+    "        known_positives = data['item_labels'][data['train'].tocsr()[user_id].indices]\n",
+    "\n",
+    "        scores = model.predict(user_id, np.arange(n_items))\n",
+    "        top_items = data['item_labels'][np.argsort(-scores)]\n",
+    "\n",
+    "        print(\"User %s\" % user_id)\n",
+    "        print(\"     Known positives:\")\n",
+    "\n",
+    "        for x in known_positives[:3]:\n",
+    "            print(\"        %s\" % x)\n",
+    "\n",
+    "        print(\"     Recommended:\")\n",
+    "\n",
+    "        for x in top_items[:3]:\n",
+    "            print(\"        %s\" % x)\n",
+    "\n",
+    "sample_recommendation(model, data, [3, 25, 450])"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  }
+ ]
+}
